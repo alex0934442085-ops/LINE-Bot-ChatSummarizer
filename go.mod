@@ -22,3 +22,5 @@ require (
 	golang.org/x/sys v0.8.0 // indirect
 	mellium.im/sasl v0.3.1 // indirect
 )
+
+// Force dependency sync
