@@ -8,15 +8,16 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-// gptGPT3CompleteContext: Call GPT-4o mini API
+// gptGPT3CompleteContext: Use GPT-4o mini for normal text completion
 func gptGPT3CompleteContext(ori string) (ret string) {
-	fmt.Printf("Using GPT-4o mini Complete")
+	fmt.Printf("Using GPT-4o mini Complete\n")
 	return gptCompleteContext(ori, "gpt-4o-mini")
 }
 
-// gptGPT4CompleteContext: Call GPT-4o mini API
+// gptGPT4CompleteContext: Use GPT-4o mini for text completion
+// Kept for compatibility with the original bot commands.
 func gptGPT4CompleteContext(ori string) (ret string) {
-	fmt.Printf("Using GPT-4o mini Complete")
+	fmt.Printf("Using GPT-4o mini Complete\n")
 	return gptCompleteContext(ori, "gpt-4o-mini")
 }
 
@@ -45,7 +46,7 @@ func gptCompleteContext(ori string, model string) (ret string) {
 	return ret
 }
 
-// Create image by DALL-E 2
+// Create image
 func gptImageCreate(prompt string) (string, error) {
 	ctx := context.Background()
 
