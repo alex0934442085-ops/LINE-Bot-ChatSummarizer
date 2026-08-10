@@ -11,15 +11,14 @@ import (
 // gptGPT3CompleteContext:
 // 保留原本函式名稱，這樣 bot.go 不需要修改。
 func gptGPT3CompleteContext(ori string) (ret string) {
-	fmt.Println("Using Gemini 2.5 Flash")
+	fmt.Println("Using Gemini 3.6 Flash")
 	return geminiCompleteContext(ori)
 }
 
 // gptGPT4CompleteContext:
-// 目前也使用 Gemini 2.5 Flash。
-// 保留原本函式名稱，避免 bot.go 需要修改。
+// 保留原本函式名稱，這樣 bot.go 不需要修改。
 func gptGPT4CompleteContext(ori string) (ret string) {
-	fmt.Println("Using Gemini 2.5 Flash")
+	fmt.Println("Using Gemini 3.6 Flash")
 	return geminiCompleteContext(ori)
 }
 
@@ -41,13 +40,11 @@ func geminiCompleteContext(ori string) (ret string) {
 		return fmt.Sprintf("Err: 無法建立 Gemini Client: %v", err)
 	}
 
-	// 注意：
-	// google.golang.org/genai 的 Client 沒有 Close() 方法，
-	// 所以這裡不能寫 defer client.Close()
+	// genai.Client 沒有 Close() 方法，所以不要寫 client.Close()
 
 	result, err := client.Models.GenerateContent(
 		ctx,
-		"gemini-2.5-flash",
+		"gemini-3.6-flash",
 		genai.Text(ori),
 		nil,
 	)
@@ -75,7 +72,8 @@ func geminiCompleteContext(ori string) (ret string) {
 }
 
 // 圖片功能目前先保留。
-// 這次主要讓 :sum_all 使用 Gemini 摘要。
+// 這次主要是讓 :sum_all 使用 Gemini 摘要。
+// Gemini 3.6 Flash 本身不是圖片生成模型。
 func gptImageCreate(prompt string) (string, error) {
 	return "", fmt.Errorf("目前圖片生成功能尚未改成 Gemini")
 }
