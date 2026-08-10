@@ -34,22 +34,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		// =========================
 		case *linebot.TextMessage:
 
-			// GPT
-			if strings.Contains(message.Text, ":gpt") {
-
-				if IsRedemptionEnabled() {
-					if stickerRedeemable {
-						handleGPT(GPT_Complete, event, message.Text)
-						stickerRedeemable = false
-					} else {
-						handleRedeemRequestMsg(event)
-					}
-				} else {
-					handleGPT(GPT_Complete, event, message.Text)
-				}
-
-			// GPT4
-			} else if strings.Contains(message.Text, ":gpt4") {
+			// GPT-4
+			// 注意：要先判斷 :gpt4，
+			// 否則 :gpt4 會先被 :gpt 判斷到。
+			if strings.Contains(message.Text, ":gpt4") {
 
 				if IsRedemptionEnabled() {
 					if stickerRedeemable {
@@ -60,6 +48,20 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				} else {
 					handleGPT(GPT_GPT4_Complete, event, message.Text)
+				}
+
+			// GPT
+			} else if strings.Contains(message.Text, ":gpt") {
+
+				if IsRedemptionEnabled() {
+					if stickerRedeemable {
+						handleGPT(GPT_Complete, event, message.Text)
+						stickerRedeemable = false
+					} else {
+						handleRedeemRequestMsg(event)
+					}
+				} else {
+					handleGPT(GPT_Complete, event, message.Text)
 				}
 
 			// Draw
@@ -185,7 +187,7 @@ func handleSumAll(event *linebot.Event) {
 		if _, err := bot.ReplyMessage(
 			event.ReplyToken,
 			linebot.NewTextMessage(
-				"目前還沒有足夠的聊天紀錄可以整理喔。",
+				"目前還沒有足夠的聊天紀錄可以整理喔，嗷～",
 			),
 		).Do(); err != nil {
 			log.Print(err)
@@ -199,36 +201,82 @@ func handleSumAll(event *linebot.Event) {
 	// ========================================================
 
 	prompt := fmt.Sprintf(`
-你是一個 LINE 群組聊天摘要機器人。
+你是一隻很會整理聊天紀錄的柴犬聊天機器人。
 
-請將以下 LINE 群組聊天整理成簡潔、好讀的繁體中文摘要。
+請幫我整理下面這段 LINE 群組聊天紀錄。
 
-請優先整理：
+你的目標不是把每一句話重新講一次，而是幫群組成員快速了解：
+大家最近到底在聊什麼、討論出了什麼、有哪些事情已經決定，以及還有哪些事情需要確認。
 
-1. 📌 討論主題
-2. 💡 重要討論重點
-3. ✅ 已經確定的事項
-4. 📝 待辦事項
-5. 📅 日期、時間、地點
-6. ❓ 尚未決定或需要確認的事情
-
-請不要逐句重述聊天內容。
-
-如果聊天只是閒聊，請簡單說明，不要硬湊重點。
-
-請使用條列式整理。
-
-最後如果有明確結論，請加上：
-
-「📢 最終結論：」
-
-聊天紀錄：
+聊天紀錄如下：
 
 %s
+
+請遵守以下規則：
+
+請使用繁體中文。
+
+最重要的一點：不要使用 Markdown 格式。
+
+不要使用 # 標題。
+不要使用 * 或 **。
+不要使用 Markdown 條列符號。
+不要使用 Markdown 表格。
+不要使用 Markdown 程式碼區塊。
+
+可以使用一般文字搭配 Emoji，例如：
+📌
+💡
+✅
+📅
+❓
+🐕
+這些都可以。
+
+請使用自然、口語、像朋友幫忙整理聊天內容的方式說話。
+
+不要寫得像正式會議紀錄。
+
+不要過度正式。
+
+不要逐一列出每個人的發言。
+
+請優先整理真正重要的內容。
+
+如果大家有討論某個主題，請說明大家主要在討論什麼。
+
+如果有明確決定的事情，請清楚說明。
+
+如果有日期、時間、地點或活動，請整理出來。
+
+如果有還沒有決定、需要再確認的事情，也請說明。
+
+如果只是閒聊，就簡單帶過，不要為了湊內容而硬整理成重要事項。
+
+不要自行猜測聊天紀錄中沒有提到的事情。
+
+不要把不確定的事情說成已經確定。
+
+整體內容請簡潔一點，讓群組成員可以快速看完。
+
+開頭可以用類似：
+「柴柴幫你整理好了，嗷～」
+這種自然又有一點俏皮的方式。
+
+可以偶爾加入一點柴犬的語氣，例如「嗷～」、「汪！」、「柴柴看了一下～」之類。
+
+但不要每一句都賣萌，也不要讓內容看起來幼稚。
+
+如果聊天紀錄沒有明確結論，就不要硬寫「最終結論」。
+
+如果有明確結論，再自然地說明最後決定了什麼。
+
+請直接輸出整理結果，不要解釋你使用了哪些規則。
+
 `, oriContext)
 
 	// ========================================================
-	// Call OpenAI
+	// Call Gemini
 	// ========================================================
 
 	reply := gptGPT3CompleteContext(prompt)
@@ -319,7 +367,9 @@ func handleGPT(
 
 			if _, err := bot.ReplyMessage(
 				event.ReplyToken,
-				linebot.NewTextMessage("無法正確顯示圖形。"),
+				linebot.NewTextMessage(
+					"目前沒辦法幫你畫圖，嗷……",
+				),
 			).Do(); err != nil {
 				log.Print(err)
 			}
