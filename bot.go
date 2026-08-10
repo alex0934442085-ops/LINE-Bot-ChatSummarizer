@@ -34,10 +34,26 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		// =========================
 		case *linebot.TextMessage:
 
+			// AI 統整
+			// 在群組輸入「統整」即可。
+			if strings.EqualFold(strings.TrimSpace(message.Text), "統整") && isGroupEvent(event) {
+
+				handleSumAll(event)
+
+			// 舊版 AI 統整指令
+			} else if strings.EqualFold(strings.TrimSpace(message.Text), ":sum_all") && isGroupEvent(event) {
+
+				handleSumAll(event)
+
+			// 查看所有原始聊天紀錄
+			} else if strings.EqualFold(strings.TrimSpace(message.Text), ":list_all") && isGroupEvent(event) {
+
+				handleListAll(event)
+
 			// GPT-4
 			// 注意：要先判斷 :gpt4，
 			// 否則 :gpt4 會先被 :gpt 判斷到。
-			if strings.Contains(message.Text, ":gpt4") {
+			} else if strings.Contains(message.Text, ":gpt4") {
 
 				if IsRedemptionEnabled() {
 					if stickerRedeemable {
@@ -78,17 +94,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					handleGPT(GPT_Draw, event, message.Text)
 				}
 
-			// List group messages
-			} else if strings.EqualFold(message.Text, ":list_all") && isGroupEvent(event) {
-
-				handleListAll(event)
-
-			// Summarize group messages
-			} else if strings.EqualFold(message.Text, ":sum_all") && isGroupEvent(event) {
-
-				handleSumAll(event)
-
-			// Store group messages
+			// 一般群組訊息
 			} else if isGroupEvent(event) {
 
 				handleStoreMsg(event, message.Text)
@@ -231,7 +237,6 @@ func handleSumAll(event *linebot.Event) {
 📅
 ❓
 🐕
-這些都可以。
 
 請使用自然、口語、像朋友幫忙整理聊天內容的方式說話。
 
