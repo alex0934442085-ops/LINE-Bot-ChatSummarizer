@@ -11,98 +11,176 @@ import (
 )
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
+
 	events, err := bot.ParseRequest(r)
 
 	if err != nil {
+
 		if err == linebot.ErrInvalidSignature {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
+
 		return
 	}
 
 	for _, event := range events {
+
 		if event.Type != linebot.EventTypeMessage {
 			continue
 		}
 
 		switch message := event.Message.(type) {
 
-		// =========================
+		// ============================================================
 		// Text Message
-		// =========================
+		// ============================================================
+
 		case *linebot.TextMessage:
 
-			// AI 統整
-			// 在群組輸入「統整」即可。
-			if strings.EqualFold(strings.TrimSpace(message.Text), "統整") && isGroupEvent(event) {
-
-				handleSumAll(event)
-
-			// 舊版 AI 統整指令
-			} else if strings.EqualFold(strings.TrimSpace(message.Text), ":sum_all") && isGroupEvent(event) {
-
-				handleSumAll(event)
-
-			// 查看所有原始聊天紀錄
-			} else if strings.EqualFold(strings.TrimSpace(message.Text), ":list_all") && isGroupEvent(event) {
-
-				handleListAll(event)
+			text := strings.TrimSpace(message.Text)
 
 			// GPT-4
-			// 注意：要先判斷 :gpt4，
-			// 否則 :gpt4 會先被 :gpt 判斷到。
-			} else if strings.Contains(message.Text, ":gpt4") {
+			if strings.Contains(text, ":gpt4") {
 
 				if IsRedemptionEnabled() {
+
 					if stickerRedeemable {
-						handleGPT(GPT_GPT4_Complete, event, message.Text)
+
+						handleGPT(
+							GPT_GPT4_Complete,
+							event,
+							text,
+						)
+
 						stickerRedeemable = false
+
 					} else {
+
 						handleRedeemRequestMsg(event)
 					}
+
 				} else {
-					handleGPT(GPT_GPT4_Complete, event, message.Text)
+
+					handleGPT(
+						GPT_GPT4_Complete,
+						event,
+						text,
+					)
 				}
 
 			// GPT
-			} else if strings.Contains(message.Text, ":gpt") {
+			} else if strings.Contains(text, ":gpt") {
 
 				if IsRedemptionEnabled() {
+
 					if stickerRedeemable {
-						handleGPT(GPT_Complete, event, message.Text)
+
+						handleGPT(
+							GPT_Complete,
+							event,
+							text,
+						)
+
 						stickerRedeemable = false
+
 					} else {
+
 						handleRedeemRequestMsg(event)
 					}
+
 				} else {
-					handleGPT(GPT_Complete, event, message.Text)
+
+					handleGPT(
+						GPT_Complete,
+						event,
+						text,
+					)
 				}
 
 			// Draw
-			} else if strings.Contains(message.Text, ":draw") {
+			} else if strings.Contains(text, ":draw") {
 
 				if IsRedemptionEnabled() {
+
 					if stickerRedeemable {
-						handleGPT(GPT_Draw, event, message.Text)
+
+						handleGPT(
+							GPT_Draw,
+							event,
+							text,
+						)
+
 						stickerRedeemable = false
+
 					} else {
+
 						handleRedeemRequestMsg(event)
 					}
+
 				} else {
-					handleGPT(GPT_Draw, event, message.Text)
+
+					handleGPT(
+						GPT_Draw,
+						event,
+						text,
+					)
 				}
 
-			// 一般群組訊息
+			// ========================================================
+			// 統整
+			// ========================================================
+
+			} else if strings.EqualFold(text, "統整") &&
+				isGroupEvent(event) {
+
+				handleSumAll(event, false)
+
+			// ========================================================
+			// 統整全部
+			// ========================================================
+
+			} else if strings.EqualFold(text, "統整全部") &&
+				isGroupEvent(event) {
+
+				handleSumAll(event, true)
+
+			// ========================================================
+			// 舊指令 :sum_all
+			// 保留給你使用
+			// ========================================================
+
+			} else if strings.EqualFold(text, ":sum_all") &&
+				isGroupEvent(event) {
+
+				handleSumAll(event, true)
+
+			// ========================================================
+			// 顯示全部聊天紀錄
+			// ========================================================
+
+			} else if strings.EqualFold(text, ":list_all") &&
+				isGroupEvent(event) {
+
+				handleListAll(event)
+
+			// ========================================================
+			// Store group messages
+			// ========================================================
+
 			} else if isGroupEvent(event) {
 
-				handleStoreMsg(event, message.Text)
+				handleStoreMsg(
+					event,
+					text,
+				)
 			}
 
-		// =========================
+		// ============================================================
 		// Sticker Message
-		// =========================
+		// ============================================================
+
 		case *linebot.StickerMessage:
 
 			var kw string
@@ -127,8 +205,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 					if _, err = bot.ReplyMessage(
 						event.ReplyToken,
-						linebot.NewTextMessage("你的賦能功能啟動了！"),
+						linebot.NewTextMessage(
+							"你的賦能功能啟動了！",
+						),
 					).Do(); err != nil {
+
 						log.Print(err)
 					}
 				}
@@ -136,17 +217,18 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 			if isGroupEvent(event) {
 
-				// 在群組中，只記錄貼圖，不回覆
 				outStickerResult := fmt.Sprintf(
 					"貼圖訊息: %s",
 					kw,
 				)
 
-				handleStoreMsg(event, outStickerResult)
+				handleStoreMsg(
+					event,
+					outStickerResult,
+				)
 
 			} else {
 
-				// 一對一聊天則回覆
 				outStickerResult := fmt.Sprintf(
 					"貼圖訊息: %s, pkg: %s kw: %s text: %s",
 					message.StickerID,
@@ -157,8 +239,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 				if _, err = bot.ReplyMessage(
 					event.ReplyToken,
-					linebot.NewTextMessage(outStickerResult),
+					linebot.NewTextMessage(
+						outStickerResult,
+					),
 				).Do(); err != nil {
+
 					log.Print(err)
 				}
 			}
@@ -167,35 +252,104 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// Summarize all group messages
+// Summarize group messages
+//
+// full = false
+// → 只整理上一次統整之後的訊息
+//
+// full = true
+// → 整理全部訊息
 // ============================================================
 
-func handleSumAll(event *linebot.Event) {
+func handleSumAll(
+	event *linebot.Event,
+	full bool,
+) {
 
-	// 取得目前群組的所有聊天紀錄
+	groupID := getGroupID(event)
+
+	if groupID == "" {
+		return
+	}
+
+	// ========================================================
+	// 取得全部聊天紀錄
+	// ========================================================
+
+	q := summaryQueue.ReadGroupInfo(groupID)
+
+	if len(q) == 0 {
+
+		if _, err := bot.ReplyMessage(
+			event.ReplyToken,
+			linebot.NewTextMessage(
+				"目前還沒有聊天紀錄可以整理喔，嗷～",
+			),
+		).Do(); err != nil {
+
+			log.Print(err)
+		}
+
+		return
+	}
+
+	// ========================================================
+	// 決定本次要整理的起點
+	// ========================================================
+
+	var startTime time.Time
+
+	if !full {
+
+		startTime = summaryQueue.GetLastSummaryTime(groupID)
+	}
+
+	// ========================================================
+	// 建立本次摘要用的聊天內容
+	// ========================================================
+
 	oriContext := ""
 
-	q := summaryQueue.ReadGroupInfo(getGroupID(event))
+	var latestMessageTime time.Time
 
 	for _, m := range q {
+
+		// 統整模式：
+		// 只抓上次統整之後的訊息
+		if !full &&
+			!startTime.IsZero() &&
+			!m.Time.After(startTime) {
+
+			continue
+		}
 
 		oriContext += fmt.Sprintf(
 			"[%s]: %s (%s)\n",
 			m.UserName,
 			m.MsgText,
-			m.Time.Local().Format("2006-01-02 15:04:05"),
+			m.Time.Local().Format(
+				"2006-01-02 15:04:05",
+			),
 		)
+
+		if m.Time.After(latestMessageTime) {
+			latestMessageTime = m.Time
+		}
 	}
 
-	// 如果目前沒有聊天紀錄
+	// ========================================================
+	// 沒有新訊息
+	// ========================================================
+
 	if strings.TrimSpace(oriContext) == "" {
 
 		if _, err := bot.ReplyMessage(
 			event.ReplyToken,
 			linebot.NewTextMessage(
-				"目前還沒有足夠的聊天紀錄可以整理喔，嗷～",
+				"柴柴看了一下～上次統整之後好像沒有新的聊天內容耶，嗷？🐕",
 			),
 		).Do(); err != nil {
+
 			log.Print(err)
 		}
 
@@ -207,18 +361,16 @@ func handleSumAll(event *linebot.Event) {
 	// ========================================================
 
 	prompt := fmt.Sprintf(`
-你是一隻很會整理聊天紀錄的柴犬聊天機器人。
+你是一隻很會整理 LINE 群組聊天紀錄的柴犬聊天機器人。
 
-請幫我整理下面這段 LINE 群組聊天紀錄。
+請幫我整理下面這一段 LINE 群組聊天。
 
-你的目標不是把每一句話重新講一次，而是幫群組成員快速了解：
-大家最近到底在聊什麼、討論出了什麼、有哪些事情已經決定，以及還有哪些事情需要確認。
+你的目標不是把每一句話重新講一次，而是讓群組成員快速知道：
+大家在聊什麼、重要的事情是什麼、做了哪些決定，以及還有什麼事情需要確認。
 
-聊天紀錄如下：
+聊天紀錄：
 
 %s
-
-請遵守以下規則：
 
 請使用繁體中文。
 
@@ -241,14 +393,12 @@ func handleSumAll(event *linebot.Event) {
 請使用自然、口語、像朋友幫忙整理聊天內容的方式說話。
 
 不要寫得像正式會議紀錄。
-
 不要過度正式。
-
 不要逐一列出每個人的發言。
 
 請優先整理真正重要的內容。
 
-如果大家有討論某個主題，請說明大家主要在討論什麼。
+如果大家有討論某個主題，請說明主要在討論什麼。
 
 如果有明確決定的事情，請清楚說明。
 
@@ -256,7 +406,7 @@ func handleSumAll(event *linebot.Event) {
 
 如果有還沒有決定、需要再確認的事情，也請說明。
 
-如果只是閒聊，就簡單帶過，不要為了湊內容而硬整理成重要事項。
+如果只是閒聊，就簡單帶過，不要為了湊內容而硬整理。
 
 不要自行猜測聊天紀錄中沒有提到的事情。
 
@@ -268,7 +418,10 @@ func handleSumAll(event *linebot.Event) {
 「柴柴幫你整理好了，嗷～」
 這種自然又有一點俏皮的方式。
 
-可以偶爾加入一點柴犬的語氣，例如「嗷～」、「汪！」、「柴柴看了一下～」之類。
+可以偶爾加入一點柴犬的語氣，例如：
+「嗷～」
+「汪！」
+「柴柴看了一下～」
 
 但不要每一句都賣萌，也不要讓內容看起來幼稚。
 
@@ -277,7 +430,6 @@ func handleSumAll(event *linebot.Event) {
 如果有明確結論，再自然地說明最後決定了什麼。
 
 請直接輸出整理結果，不要解釋你使用了哪些規則。
-
 `, oriContext)
 
 	// ========================================================
@@ -287,14 +439,54 @@ func handleSumAll(event *linebot.Event) {
 	reply := gptGPT3CompleteContext(prompt)
 
 	// ========================================================
-	// Reply directly to LINE group
+	// Gemini 發生錯誤
+	// 不要更新統整時間
+	// ========================================================
+
+	if strings.HasPrefix(reply, "Err:") {
+
+		if _, err := bot.ReplyMessage(
+			event.ReplyToken,
+			linebot.NewTextMessage(reply),
+		).Do(); err != nil {
+
+			log.Print(err)
+		}
+
+		return
+	}
+
+	// ========================================================
+	// 回覆群組
 	// ========================================================
 
 	if _, err := bot.ReplyMessage(
 		event.ReplyToken,
 		linebot.NewTextMessage(reply),
 	).Do(); err != nil {
+
 		log.Print(err)
+		return
+	}
+
+	// ========================================================
+	// AI 成功 + LINE 成功
+	// 才記錄這次統整的位置
+	// ========================================================
+
+	if !latestMessageTime.IsZero() {
+
+		summaryQueue.SetLastSummaryTime(
+			groupID,
+			latestMessageTime,
+		)
+
+		log.Println(
+			"Summary completed. Group:",
+			groupID,
+			"Time:",
+			latestMessageTime,
+		)
 	}
 }
 
@@ -306,7 +498,9 @@ func handleListAll(event *linebot.Event) {
 
 	reply := ""
 
-	q := summaryQueue.ReadGroupInfo(getGroupID(event))
+	q := summaryQueue.ReadGroupInfo(
+		getGroupID(event),
+	)
 
 	for _, m := range q {
 
@@ -314,11 +508,14 @@ func handleListAll(event *linebot.Event) {
 			"[%s]: %s (%s)\n",
 			m.UserName,
 			m.MsgText,
-			m.Time.Local().Format("2006-01-02 15:04:05"),
+			m.Time.Local().Format(
+				"2006-01-02 15:04:05",
+			),
 		)
 	}
 
 	if strings.TrimSpace(reply) == "" {
+
 		reply = "目前沒有記錄到任何群組訊息。"
 	}
 
@@ -326,6 +523,7 @@ func handleListAll(event *linebot.Event) {
 		event.ReplyToken,
 		linebot.NewTextMessage(reply),
 	).Do(); err != nil {
+
 		log.Print(err)
 	}
 }
@@ -344,29 +542,37 @@ func handleGPT(
 
 	case GPT_Complete:
 
-		reply := gptGPT3CompleteContext(message)
+		reply := gptGPT3CompleteContext(
+			message,
+		)
 
 		if _, err := bot.ReplyMessage(
 			event.ReplyToken,
 			linebot.NewTextMessage(reply),
 		).Do(); err != nil {
+
 			log.Print(err)
 		}
 
 	case GPT_GPT4_Complete:
 
-		reply := gptGPT4CompleteContext(message)
+		reply := gptGPT4CompleteContext(
+			message,
+		)
 
 		if _, err := bot.ReplyMessage(
 			event.ReplyToken,
 			linebot.NewTextMessage(reply),
 		).Do(); err != nil {
+
 			log.Print(err)
 		}
 
 	case GPT_Draw:
 
-		reply, err := gptImageCreate(message)
+		reply, err := gptImageCreate(
+			message,
+		)
 
 		if err != nil {
 
@@ -376,6 +582,7 @@ func handleGPT(
 					"目前沒辦法幫你畫圖，嗷……",
 				),
 			).Do(); err != nil {
+
 				log.Print(err)
 			}
 
@@ -386,8 +593,12 @@ func handleGPT(
 				linebot.NewTextMessage(
 					"根據你的提示，畫出以下圖片：",
 				),
-				linebot.NewImageMessage(reply, reply),
+				linebot.NewImageMessage(
+					reply,
+					reply,
+				),
 			).Do(); err != nil {
+
 				log.Print(err)
 			}
 		}
@@ -398,7 +609,9 @@ func handleGPT(
 // Redemption
 // ============================================================
 
-func handleRedeemRequestMsg(event *linebot.Event) {
+func handleRedeemRequestMsg(
+	event *linebot.Event,
+) {
 
 	userName := event.Source.UserID
 
@@ -413,13 +626,15 @@ func handleRedeemRequestMsg(event *linebot.Event) {
 	if _, err := bot.ReplyMessage(
 		event.ReplyToken,
 		linebot.NewTextMessage(
-			userName + ":你需要買貼圖，開啟這個功能",
+			userName +
+				":你需要買貼圖，開啟這個功能",
 		),
 		linebot.NewStickerMessage(
 			RedeemStickerPID,
 			RedeemStickerSID,
 		),
 	).Do(); err != nil {
+
 		log.Print(err)
 	}
 }
@@ -459,7 +674,9 @@ func handleStoreMsg(
 // Check whether event is from group / room
 // ============================================================
 
-func isGroupEvent(event *linebot.Event) bool {
+func isGroupEvent(
+	event *linebot.Event,
+) bool {
 
 	return event.Source.GroupID != "" ||
 		event.Source.RoomID != ""
@@ -469,7 +686,9 @@ func isGroupEvent(event *linebot.Event) bool {
 // Get group ID
 // ============================================================
 
-func getGroupID(event *linebot.Event) string {
+func getGroupID(
+	event *linebot.Event,
+) string {
 
 	if event.Source.GroupID != "" {
 		return event.Source.GroupID
