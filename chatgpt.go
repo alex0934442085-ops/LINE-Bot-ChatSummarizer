@@ -40,7 +40,10 @@ func geminiCompleteContext(ori string) (ret string) {
 	if err != nil {
 		return fmt.Sprintf("Err: 無法建立 Gemini Client: %v", err)
 	}
-	defer client.Close()
+
+	// 注意：
+	// google.golang.org/genai 的 Client 沒有 Close() 方法，
+	// 所以這裡不能寫 defer client.Close()
 
 	result, err := client.Models.GenerateContent(
 		ctx,
@@ -72,8 +75,7 @@ func geminiCompleteContext(ori string) (ret string) {
 }
 
 // 圖片功能目前先保留。
-// 因為我們這次主要是要讓 :sum_all 使用免費 Gemini 摘要。
-// Gemini 2.5 Flash 本身不是圖片生成模型。
+// 這次主要讓 :sum_all 使用 Gemini 摘要。
 func gptImageCreate(prompt string) (string, error) {
 	return "", fmt.Errorf("目前圖片生成功能尚未改成 Gemini")
 }
