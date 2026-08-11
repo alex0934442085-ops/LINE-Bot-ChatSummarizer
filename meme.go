@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
