@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -298,5 +299,5 @@ func handleMemeList(event *linebot.Event) {
 func buildMemeURL(filename string) string {
 
 	return "https://raw.githubusercontent.com/alex0934442085-ops/LINE-Bot-ChatSummarizer/master/meme/" +
-		filename
+		url.PathEscape(filename)
 }
