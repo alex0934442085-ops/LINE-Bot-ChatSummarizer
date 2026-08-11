@@ -127,7 +127,21 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						text,
 					)
 				}
+// ========================================================
+// 梗圖
+// ========================================================
 
+} else if strings.HasPrefix(text, "梗圖") &&
+	isGroupEvent(event) {
+
+	keyword := strings.TrimSpace(
+		strings.TrimPrefix(text, "梗圖"),
+	)
+
+	handleMeme(
+		event,
+		keyword,
+	)
 // ========================================================
 // 統整全部
 // ========================================================
