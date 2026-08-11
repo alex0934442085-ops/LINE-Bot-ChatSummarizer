@@ -15,13 +15,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := bot.ParseRequest(r)
 
 	if err != nil {
-
 		if err == linebot.ErrInvalidSignature {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-
 		return
 	}
 
@@ -41,7 +39,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 			text := strings.TrimSpace(message.Text)
 
+			// ========================================================
 			// GPT-4
+			// ========================================================
+
 			if strings.Contains(text, ":gpt4") {
 
 				if IsRedemptionEnabled() {
@@ -70,7 +71,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					)
 				}
 
+			// ========================================================
 			// GPT
+			// ========================================================
+
 			} else if strings.Contains(text, ":gpt") {
 
 				if IsRedemptionEnabled() {
@@ -99,7 +103,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					)
 				}
 
+			// ========================================================
 			// Draw
+			// ========================================================
+
 			} else if strings.Contains(text, ":draw") {
 
 				if IsRedemptionEnabled() {
@@ -127,75 +134,183 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						text,
 					)
 				}
-				
-// ========================================================
-// 梗圖清單
-// ========================================================
 
-} else if strings.EqualFold(text, "梗圖清單") &&
-	isGroupEvent(event) {
+			// ========================================================
+			// 梗圖清單
+			// ========================================================
 
-	handleMemeList(event)
-		
-// ========================================================
-// 梗圖
-// ========================================================
+			} else if strings.EqualFold(
+				text,
+				"梗圖清單",
+			) && isGroupEvent(event) {
 
-} else if strings.HasPrefix(text, "梗圖") &&
-	isGroupEvent(event) {
+				handleMemeList(event)
 
-	keyword := strings.TrimSpace(
-		strings.TrimPrefix(text, "梗圖"),
-	)
+			// ========================================================
+			// 梗圖
+			//
+			// 只接受：
+			//
+			// 梗圖
+			// 梗圖 加班
+			// 梗圖 傻眼
+			//
+			// 不接受：
+			//
+			// 梗圖Test
+			// 梗圖機器人
+			// 我想要梗圖
+			// 這張梗圖很好笑
+			// ========================================================
 
-	handleMeme(
-		event,
-		keyword,
-	)
-// ========================================================
-// 統整全部
-// ========================================================
+			} else if strings.EqualFold(
+				text,
+				"梗圖",
+			) && isGroupEvent(event) {
 
-} else if strings.HasPrefix(text, "統整全部") &&
-	isGroupEvent(event) {
+				handleMeme(
+					event,
+					"",
+				)
 
-	// 取得「統整全部」後面的自訂整理要求
-	customPrompt := strings.TrimSpace(
-		strings.TrimPrefix(text, "統整全部"),
-	)
+			} else if strings.HasPrefix(
+				text,
+				"梗圖 ",
+			) && isGroupEvent(event) {
 
-	handleSumAll(event, true, customPrompt)
+				keyword := strings.TrimSpace(
+					strings.TrimPrefix(
+						text,
+						"梗圖 ",
+					),
+				)
 
-// ========================================================
-// 統整
-// ========================================================
+				if keyword != "" {
 
-} else if strings.HasPrefix(text, "統整") &&
-	isGroupEvent(event) {
+					handleMeme(
+						event,
+						keyword,
+					)
+				}
 
-	// 取得「統整」後面的自訂整理要求
-	customPrompt := strings.TrimSpace(
-		strings.TrimPrefix(text, "統整"),
-	)
+			// ========================================================
+			// 統整全部
+			//
+			// 統整全部
+			// 統整全部 遊戲
+			//
+			// 一定要「統整全部」本身，
+			// 或「統整全部 + 空格 + 自訂要求」。
+			// ========================================================
 
-	handleSumAll(event, false, customPrompt)
+			} else if strings.EqualFold(
+				text,
+				"統整全部",
+			) && isGroupEvent(event) {
 
-// ========================================================
-// 舊指令 :sum_all
-// 保留給你使用
-// ========================================================
+				handleSumAll(
+					event,
+					true,
+					"",
+				)
 
-} else if strings.EqualFold(text, ":sum_all") &&
-	isGroupEvent(event) {
+			} else if strings.HasPrefix(
+				text,
+				"統整全部 ",
+			) && isGroupEvent(event) {
 
-	handleSumAll(event, true, "")
+				customPrompt := strings.TrimSpace(
+					strings.TrimPrefix(
+						text,
+						"統整全部 ",
+					),
+				)
+
+				if customPrompt != "" {
+
+					handleSumAll(
+						event,
+						true,
+						customPrompt,
+					)
+				}
+
+			// ========================================================
+			// 統整
+			//
+			// 統整
+			// 統整 遊戲
+			// 統整 聚餐
+			//
+			// 一定要「統整」本身，
+			// 或「統整 + 空格 + 自訂要求」。
+			//
+			// 因此：
+			//
+			// 統整Test
+			// 統整機器人
+			// 統整一下
+			//
+			// 都不會觸發。
+			// ========================================================
+
+			} else if strings.EqualFold(
+				text,
+				"統整",
+			) && isGroupEvent(event) {
+
+				handleSumAll(
+					event,
+					false,
+					"",
+				)
+
+			} else if strings.HasPrefix(
+				text,
+				"統整 ",
+			) && isGroupEvent(event) {
+
+				customPrompt := strings.TrimSpace(
+					strings.TrimPrefix(
+						text,
+						"統整 ",
+					),
+				)
+
+				if customPrompt != "" {
+
+					handleSumAll(
+						event,
+						false,
+						customPrompt,
+					)
+				}
+
+			// ========================================================
+			// 舊指令 :sum_all
+			//
+			// 保留給你使用
+			// ========================================================
+
+			} else if strings.EqualFold(
+				text,
+				":sum_all",
+			) && isGroupEvent(event) {
+
+				handleSumAll(
+					event,
+					true,
+					"",
+				)
 
 			// ========================================================
 			// 顯示全部聊天紀錄
 			// ========================================================
 
-			} else if strings.EqualFold(text, ":list_all") &&
-				isGroupEvent(event) {
+			} else if strings.EqualFold(
+				text,
+				":list_all",
+			) && isGroupEvent(event) {
 
 				handleListAll(event)
 
@@ -251,6 +366,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 			if isGroupEvent(event) {
 
+				// 在群組中，只記錄貼圖，不回覆
 				outStickerResult := fmt.Sprintf(
 					"貼圖訊息: %s",
 					kw,
@@ -263,6 +379,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 			} else {
 
+				// 一對一聊天則回覆
 				outStickerResult := fmt.Sprintf(
 					"貼圖訊息: %s, pkg: %s kw: %s text: %s",
 					message.StickerID,
@@ -336,7 +453,9 @@ func handleSumAll(
 
 	if !full {
 
-		startTime = summaryQueue.GetLastSummaryTime(groupID)
+		startTime = summaryQueue.GetLastSummaryTime(
+			groupID,
+		)
 	}
 
 	// ========================================================
@@ -351,6 +470,7 @@ func handleSumAll(
 
 		// 統整模式：
 		// 只抓上次統整之後的訊息
+
 		if !full &&
 			!startTime.IsZero() &&
 			!m.Time.After(startTime) {
@@ -368,6 +488,7 @@ func handleSumAll(
 		)
 
 		if m.Time.After(latestMessageTime) {
+
 			latestMessageTime = m.Time
 		}
 	}
@@ -392,22 +513,25 @@ func handleSumAll(
 	}
 
 	// ========================================================
-// AI Summary Prompt
-// ========================================================
+	// AI Summary Prompt
+	// ========================================================
 
-// 如果使用者沒有指定整理方向
-// 就使用一般摘要模式
-if strings.TrimSpace(customPrompt) == "" {
-	customPrompt = "請依照聊天內容，自行判斷並整理最重要的討論、決定、日期時間地點，以及尚未確認的事情。"
-}
+	// 如果使用者沒有指定整理方向
+	// 就使用一般摘要模式
 
-// ========================================================
-// 第一段：固定的 AI 整理規則
-// 第二段：使用者這次指定的整理方向
-// 第三段：實際聊天紀錄
-// ========================================================
+	if strings.TrimSpace(customPrompt) == "" {
 
-prompt := fmt.Sprintf(`
+		customPrompt =
+			"請依照聊天內容，自行判斷並整理最重要的討論、決定、日期時間地點，以及尚未確認的事情。"
+	}
+
+	// ========================================================
+	// 第一段：固定的 AI 整理規則
+	// 第二段：使用者這次指定的整理方向
+	// 第三段：實際聊天紀錄
+	// ========================================================
+
+	prompt := fmt.Sprintf(`
 你是一隻很會整理 LINE 群組聊天紀錄的柴犬聊天機器人。
 
 你的工作是幫群組成員快速了解這段聊天到底發生了什麼。
@@ -709,6 +833,7 @@ func handleRedeemRequestMsg(
 	).Do()
 
 	if err == nil {
+
 		userName = userProfile.DisplayName
 	}
 
@@ -744,6 +869,7 @@ func handleStoreMsg(
 	).Do()
 
 	if err == nil {
+
 		userName = userProfile.DisplayName
 	}
 
@@ -780,10 +906,12 @@ func getGroupID(
 ) string {
 
 	if event.Source.GroupID != "" {
+
 		return event.Source.GroupID
 	}
 
 	if event.Source.RoomID != "" {
+
 		return event.Source.RoomID
 	}
 
