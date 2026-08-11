@@ -40,74 +40,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			text := strings.TrimSpace(message.Text)
 
 			// ========================================================
-			// GPT-4
-			// ========================================================
-
-			if strings.Contains(text, ":gpt4") {
-
-				if IsRedemptionEnabled() {
-
-					if stickerRedeemable {
-
-						handleGPT(
-							GPT_GPT4_Complete,
-							event,
-							text,
-						)
-
-						stickerRedeemable = false
-
-					} else {
-
-						handleRedeemRequestMsg(event)
-					}
-
-				} else {
-
-					handleGPT(
-						GPT_GPT4_Complete,
-						event,
-						text,
-					)
-				}
-
-			// ========================================================
-			// GPT
-			// ========================================================
-
-			} else if strings.Contains(text, ":gpt") {
-
-				if IsRedemptionEnabled() {
-
-					if stickerRedeemable {
-
-						handleGPT(
-							GPT_Complete,
-							event,
-							text,
-						)
-
-						stickerRedeemable = false
-
-					} else {
-
-						handleRedeemRequestMsg(event)
-					}
-
-				} else {
-
-					handleGPT(
-						GPT_Complete,
-						event,
-						text,
-					)
-				}
-
-			// ========================================================
 			// Draw
 			// ========================================================
 
-			} else if strings.Contains(text, ":draw") {
+			if strings.Contains(text, ":draw") {
 
 				if IsRedemptionEnabled() {
 
@@ -137,6 +73,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 			// ========================================================
 			// 梗圖清單
+			//
+			// 只有完整輸入「梗圖清單」才觸發
 			// ========================================================
 
 			} else if strings.EqualFold(
@@ -149,13 +87,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			// ========================================================
 			// 梗圖
 			//
-			// 只接受：
-			//
 			// 梗圖
 			// 梗圖 加班
 			// 梗圖 傻眼
 			//
-			// 不接受：
+			// 不會觸發：
 			//
 			// 梗圖Test
 			// 梗圖機器人
@@ -199,8 +135,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			// 統整全部
 			// 統整全部 遊戲
 			//
-			// 一定要「統整全部」本身，
-			// 或「統整全部 + 空格 + 自訂要求」。
+			// 一定要：
+			//
+			// 統整全部
+			// 或
+			// 統整全部 + 空格 + 自訂要求
 			// ========================================================
 
 			} else if strings.EqualFold(
@@ -242,16 +181,12 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			// 統整 遊戲
 			// 統整 聚餐
 			//
-			// 一定要「統整」本身，
-			// 或「統整 + 空格 + 自訂要求」。
-			//
-			// 因此：
+			// 不會觸發：
 			//
 			// 統整Test
 			// 統整機器人
 			// 統整一下
-			//
-			// 都不會觸發。
+			// 我想統整
 			// ========================================================
 
 			} else if strings.EqualFold(
@@ -287,9 +222,9 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 			// ========================================================
-			// 舊指令 :sum_all
+			// 舊版統整指令
 			//
-			// 保留給你使用
+			// 保留 :sum_all
 			// ========================================================
 
 			} else if strings.EqualFold(
@@ -302,17 +237,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					true,
 					"",
 				)
-
-			// ========================================================
-			// 顯示全部聊天紀錄
-			// ========================================================
-
-			} else if strings.EqualFold(
-				text,
-				":list_all",
-			) && isGroupEvent(event) {
-
-				handleListAll(event)
 
 			// ========================================================
 			// Store group messages
@@ -345,6 +269,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				message.StickerID,
 			)
 
+			// ========================================================
+			// 貼圖兌換功能
+			// ========================================================
+
 			if IsRedemptionEnabled() {
 
 				if message.PackageID == RedeemStickerPID &&
@@ -363,6 +291,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+
+			// ========================================================
+			// 群組貼圖
+			// ========================================================
 
 			if isGroupEvent(event) {
 
@@ -526,8 +458,8 @@ func handleSumAll(
 	}
 
 	// ========================================================
-	// 第一段：固定的 AI 整理規則
-	// 第二段：使用者這次指定的整理方向
+	// 第一段：固定 AI 整理規則
+	// 第二段：使用者指定的整理方向
 	// 第三段：實際聊天紀錄
 	// ========================================================
 
@@ -704,45 +636,10 @@ func handleSumAll(
 }
 
 // ============================================================
-// List all group messages
-// ============================================================
-
-func handleListAll(event *linebot.Event) {
-
-	reply := ""
-
-	q := summaryQueue.ReadGroupInfo(
-		getGroupID(event),
-	)
-
-	for _, m := range q {
-
-		reply += fmt.Sprintf(
-			"[%s]: %s (%s)\n",
-			m.UserName,
-			m.MsgText,
-			m.Time.Local().Format(
-				"2006-01-02 15:04:05",
-			),
-		)
-	}
-
-	if strings.TrimSpace(reply) == "" {
-
-		reply = "目前沒有記錄到任何群組訊息。"
-	}
-
-	if _, err := bot.ReplyMessage(
-		event.ReplyToken,
-		linebot.NewTextMessage(reply),
-	).Do(); err != nil {
-
-		log.Print(err)
-	}
-}
-
-// ============================================================
-// GPT commands
+// GPT / Draw
+//
+// 目前只保留圖片生成功能。
+// :gpt / :gpt4 已經移除。
 // ============================================================
 
 func handleGPT(
@@ -752,34 +649,6 @@ func handleGPT(
 ) {
 
 	switch action {
-
-	case GPT_Complete:
-
-		reply := gptGPT3CompleteContext(
-			message,
-		)
-
-		if _, err := bot.ReplyMessage(
-			event.ReplyToken,
-			linebot.NewTextMessage(reply),
-		).Do(); err != nil {
-
-			log.Print(err)
-		}
-
-	case GPT_GPT4_Complete:
-
-		reply := gptGPT4CompleteContext(
-			message,
-		)
-
-		if _, err := bot.ReplyMessage(
-			event.ReplyToken,
-			linebot.NewTextMessage(reply),
-		).Do(); err != nil {
-
-			log.Print(err)
-		}
 
 	case GPT_Draw:
 
