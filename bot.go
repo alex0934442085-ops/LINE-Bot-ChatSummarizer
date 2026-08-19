@@ -81,6 +81,19 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	handleCommandList(event)
 				
+// ========================================================
+// 斯語錄
+//
+// 只有完整輸入「斯語錄」才觸發
+// ========================================================
+
+} else if strings.EqualFold(
+    text,
+    "斯語錄",
+) {
+
+    handleSiQuote(event)
+				
 			// ========================================================
 			// 梗圖清單
 			//
@@ -833,6 +846,9 @@ func handleCommandList(event *linebot.Event) {
 
 
 🐕 其他
+
+斯語錄
+隨機抽取一句經典語錄。
 
 指令大全
 查看目前所有可用指令。
