@@ -10,6 +10,8 @@ import (
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 )
 
+var taipeiLocation, _ = time.LoadLocation("Asia/Taipei")
+
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	events, err := bot.ParseRequest(r)
@@ -437,9 +439,9 @@ func handleSumAll(
 			"[%s]: %s (%s)\n",
 			m.UserName,
 			m.MsgText,
-			m.Time.Local().Format(
-				"2006-01-02 15:04:05",
-			),
+			m.Time.In(taipeiLocation).Format(
+    "2006-01-02 15:04:05",
+),
 		)
 
 		if m.Time.After(latestMessageTime) {
@@ -768,7 +770,7 @@ func handleStoreMsg(
 	m := MsgDetail{
 		MsgText:  message,
 		UserName: userName,
-		Time:     time.Now(),
+		Time: time.Now().In(taipeiLocation),
 	}
 
 	summaryQueue.AppendGroupInfo(
