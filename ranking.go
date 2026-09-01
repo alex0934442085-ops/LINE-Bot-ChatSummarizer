@@ -68,10 +68,6 @@ func handleRanking(
 			continue
 		}
 
-		if messageTime.After(now) {
-			continue
-		}
-
 		// ====================================================
 		// 貼圖
 		// ====================================================
@@ -85,6 +81,9 @@ func handleRanking(
 
 		// ====================================================
 		// 發言
+		//
+		// MessageType == "" 是舊資料
+		// 舊資料仍視為文字訊息
 		// ====================================================
 
 		if m.MessageType == "text" ||
@@ -93,6 +92,10 @@ func handleRanking(
 			messageCounts[m.UserName]++
 		}
 	}
+
+	// ========================================================
+	// 建立回覆
+	// ========================================================
 
 	var reply strings.Builder
 
@@ -103,21 +106,39 @@ func handleRanking(
 		reply.WriteString("🐕 今天排行\n\n")
 
 		reply.WriteString("💬 發言 TOP 10\n")
-		reply.WriteString(formatRanking(messageCounts, "則"))
+		reply.WriteString(formatRanking(
+			messageCounts,
+			"則",
+		))
 
 		reply.WriteString("\n🎨 貼圖 TOP 10\n")
-		reply.WriteString(formatRanking(stickerCounts, "張"))
+		reply.WriteString(formatRanking(
+			stickerCounts,
+			"張",
+		))
 
 	case "message":
 
 		reply.WriteString("💬 今日發言排行\n\n")
-		reply.WriteString(formatRanking(messageCounts, "則"))
+
+		reply.WriteString(formatRanking(
+			messageCounts,
+			"則",
+		))
 
 	case "sticker":
 
 		reply.WriteString("🎨 今日貼圖排行\n\n")
-		reply.WriteString(formatRanking(stickerCounts, "張"))
+
+		reply.WriteString(formatRanking(
+			stickerCounts,
+			"張",
+		))
 	}
+
+	// ========================================================
+	// 回覆 LINE
+	// ========================================================
 
 	if _, err := bot.ReplyMessage(
 		event.ReplyToken,
@@ -140,18 +161,30 @@ func formatRanking(
 		return "目前還沒有資料～🐕\n"
 	}
 
-	items := make([]rankingItem, 0, len(counts))
+	items := make(
+		[]rankingItem,
+		0,
+		len(counts),
+	)
 
 	for userName, count := range counts {
 
-		items = append(items, rankingItem{
-			UserName: userName,
-			Count:    count,
-		})
+		items = append(
+			items,
+			rankingItem{
+				UserName: userName,
+				Count:    count,
+			},
+		)
 	}
 
-	// 數量由大到小
-	// 數量相同時用名字排序，避免每次順序亂跳
+	// ========================================================
+	// 排序
+	//
+	// 1. 數量由大到小
+	// 2. 數量相同時按照名字排序
+	// ========================================================
+
 	sort.Slice(items, func(i, j int) bool {
 
 		if items[i].Count != items[j].Count {
@@ -161,9 +194,15 @@ func formatRanking(
 		return items[i].UserName < items[j].UserName
 	})
 
+	// 只取 TOP 10
+
 	if len(items) > 10 {
 		items = items[:10]
 	}
+
+	// ========================================================
+	// 產生排行榜文字
+	// ========================================================
 
 	var reply strings.Builder
 
@@ -172,14 +211,21 @@ func formatRanking(
 		var rank string
 
 		switch i {
+
 		case 0:
 			rank = "🥇"
+
 		case 1:
 			rank = "🥈"
+
 		case 2:
 			rank = "🥉"
+
 		default:
-			rank = fmt.Sprintf("%d.", i+1)
+			rank = fmt.Sprintf(
+				"%d.",
+				i+1,
+			)
 		}
 
 		reply.WriteString(
@@ -197,6 +243,87 @@ func formatRanking(
 }
 
 // ============================================================
+// 取得使用者顯示名稱
+//
+// 群組：使用群組成員 Profile
+// 聊天室：使用聊天室成員 Profile
+// 一對一：使用一般 Profile
+//
+// 這樣可以避免群組中取得不到暱稱時
+// 直接把 LINE User ID 存進排行榜。
+// ============================================================
+
+func getUserDisplayName(
+	event *linebot.Event,
+) string {
+
+	userID := event.Source.UserID
+
+	if userID == "" {
+		return "未知使用者"
+	}
+
+	// ========================================================
+	// 群組
+	// ========================================================
+
+	if event.Source.GroupID != "" {
+
+		profile, err := bot.GetGroupMemberProfile(
+			event.Source.GroupID,
+			userID,
+		).Do()
+
+		if err == nil &&
+			profile != nil &&
+			profile.DisplayName != "" {
+
+			return profile.DisplayName
+		}
+
+		return userID
+	}
+
+	// ========================================================
+	// 聊天室
+	// ========================================================
+
+	if event.Source.RoomID != "" {
+
+		profile, err := bot.GetRoomMemberProfile(
+			event.Source.RoomID,
+			userID,
+		).Do()
+
+		if err == nil &&
+			profile != nil &&
+			profile.DisplayName != "" {
+
+			return profile.DisplayName
+		}
+
+		return userID
+	}
+
+	// ========================================================
+	// 一對一
+	// ========================================================
+
+	profile, err := bot.GetProfile(
+		userID,
+	).Do()
+
+	if err == nil &&
+		profile != nil &&
+		profile.DisplayName != "" {
+
+		return profile.DisplayName
+	}
+
+	return userID
+}
+
+// ============================================================
 // Store sticker message
 // ============================================================
 
@@ -204,15 +331,8 @@ func handleStoreSticker(
 	event *linebot.Event,
 	message string,
 ) {
-	userName := event.Source.UserID
 
-	userProfile, err := bot.GetProfile(
-		event.Source.UserID,
-	).Do()
-
-	if err == nil {
-		userName = userProfile.DisplayName
-	}
+	userName := getUserDisplayName(event)
 
 	m := MsgDetail{
 		MsgText:     message,
