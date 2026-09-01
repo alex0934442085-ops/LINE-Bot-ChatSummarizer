@@ -195,3 +195,34 @@ func formatRanking(
 
 	return reply.String()
 }
+
+// ============================================================
+// Store sticker message
+// ============================================================
+
+func handleStoreSticker(
+	event *linebot.Event,
+	message string,
+) {
+	userName := event.Source.UserID
+
+	userProfile, err := bot.GetProfile(
+		event.Source.UserID,
+	).Do()
+
+	if err == nil {
+		userName = userProfile.DisplayName
+	}
+
+	m := MsgDetail{
+		MsgText:     message,
+		UserName:    userName,
+		Time:        time.Now().In(taipeiLocation),
+		MessageType: "sticker",
+	}
+
+	summaryQueue.AppendGroupInfo(
+		getGroupID(event),
+		m,
+	)
+}
