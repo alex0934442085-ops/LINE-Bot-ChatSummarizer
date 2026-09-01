@@ -82,6 +82,52 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 ) {
 
 	handleCommandList(event)
+
+// ========================================================
+// 今天排行
+//
+// 顯示：
+// 發言 TOP 10
+// 貼圖 TOP 10
+// ========================================================
+
+} else if strings.EqualFold(
+	text,
+	"今天排行",
+) && isGroupEvent(event) {
+
+	handleRanking(
+		event,
+		"all",
+	)
+
+// ========================================================
+// 發言排行
+// ========================================================
+
+} else if strings.EqualFold(
+	text,
+	"發言排行",
+) && isGroupEvent(event) {
+
+	handleRanking(
+		event,
+		"message",
+	)
+
+// ========================================================
+// 貼圖排行
+// ========================================================
+
+} else if strings.EqualFold(
+	text,
+	"貼圖排行",
+) && isGroupEvent(event) {
+
+	handleRanking(
+		event,
+		"sticker",
+	)
 				
 // ========================================================
 // 斯語錄
@@ -269,11 +315,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 			} else if isGroupEvent(event) {
 
-				handleStoreMsg(
-					event,
-					text,
-				)
-			}
+    handleStoreMsg(
+        event,
+        text,
+    )
+}
 
 		// ============================================================
 		// Sticker Message
@@ -329,10 +375,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					kw,
 				)
 
-				handleStoreMsg(
-					event,
-					outStickerResult,
-				)
+				handleStoreSticker(
+    event,
+    outStickerResult,
+)
 
 			} else {
 
@@ -768,10 +814,11 @@ func handleStoreMsg(
 	}
 
 	m := MsgDetail{
-		MsgText:  message,
-		UserName: userName,
-		Time: time.Now().In(taipeiLocation),
-	}
+	MsgText:     message,
+	UserName:    userName,
+	Time:        time.Now().In(taipeiLocation),
+	MessageType: "text",
+}
 
 	summaryQueue.AppendGroupInfo(
 		getGroupID(event),
@@ -827,6 +874,17 @@ func handleCommandList(event *linebot.Event) {
 統整 主題
 針對指定主題整理。
 例如：統整 遊戲
+
+📊 排行
+
+今天排行
+查看今天發言與貼圖排行榜。
+
+發言排行
+查看今天發言量 TOP 10。
+
+貼圖排行
+查看今天貼圖使用量 TOP 10。
 
 😂 梗圖
 
