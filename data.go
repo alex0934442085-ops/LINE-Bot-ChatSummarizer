@@ -14,9 +14,10 @@ type GroupDB interface {
 }
 
 type MsgDetail struct {
-	MsgText  string
-	UserName string
-	Time     time.Time
+	MsgText     string
+	UserName    string
+	Time        time.Time
+	MessageType string
 }
 
 type GroupData []MsgDetail
