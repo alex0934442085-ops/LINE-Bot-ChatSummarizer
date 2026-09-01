@@ -801,24 +801,14 @@ func handleStoreMsg(
 	event *linebot.Event,
 	message string,
 ) {
-
-	userName := event.Source.UserID
-
-	userProfile, err := bot.GetProfile(
-		event.Source.UserID,
-	).Do()
-
-	if err == nil {
-
-		userName = userProfile.DisplayName
-	}
+	userName := getUserDisplayName(event)
 
 	m := MsgDetail{
-	MsgText:     message,
-	UserName:    userName,
-	Time:        time.Now().In(taipeiLocation),
-	MessageType: "text",
-}
+		MsgText:     message,
+		UserName:    userName,
+		Time:        time.Now().In(taipeiLocation),
+		MessageType: "text",
+	}
 
 	summaryQueue.AppendGroupInfo(
 		getGroupID(event),
