@@ -59,6 +59,10 @@ func handleRanking(
 	messageCounts := make(map[string]int)
 	stickerCounts := make(map[string]int)
 
+	// 實際資料區間
+	var dataStart time.Time
+	var dataEnd time.Time
+
 	for _, m := range q {
 
 		messageTime := m.Time.In(taipeiLocation)
@@ -66,6 +70,21 @@ func handleRanking(
 		// 只統計今天
 		if messageTime.Before(todayStart) {
 			continue
+		}
+
+		// ====================================================
+		// 記錄今天實際存在的資料區間
+		//
+		// 如果 Render 重啟造成前面的資料消失，
+		// dataStart 就會從重新開始收到訊息的時間算起。
+		// ====================================================
+
+		if dataStart.IsZero() || messageTime.Before(dataStart) {
+			dataStart = messageTime
+		}
+
+		if dataEnd.IsZero() || messageTime.After(dataEnd) {
+			dataEnd = messageTime
 		}
 
 		// ====================================================
@@ -94,6 +113,25 @@ func handleRanking(
 	}
 
 	// ========================================================
+	// 建立實際資料區間文字
+	// ========================================================
+
+	var timeRange string
+
+	if dataStart.IsZero() {
+
+		timeRange = "📊 實際資料：目前沒有今天的資料\n\n"
+
+	} else {
+
+		timeRange = fmt.Sprintf(
+			"📊 實際資料：%s ～ %s\n\n",
+			dataStart.Format("01/02 15:04"),
+			dataEnd.Format("01/02 15:04"),
+		)
+	}
+
+	// ========================================================
 	// 建立回覆
 	// ========================================================
 
@@ -103,7 +141,8 @@ func handleRanking(
 
 	case "all":
 
-		reply.WriteString("🐕 今天排行\n\n")
+		reply.WriteString("🐕 今天排行\n")
+		reply.WriteString(timeRange)
 
 		reply.WriteString("💬 發言 TOP 10\n")
 		reply.WriteString(formatRanking(
@@ -119,7 +158,8 @@ func handleRanking(
 
 	case "message":
 
-		reply.WriteString("💬 今日發言排行\n\n")
+		reply.WriteString("💬 今日發言排行\n")
+		reply.WriteString(timeRange)
 
 		reply.WriteString(formatRanking(
 			messageCounts,
@@ -128,7 +168,8 @@ func handleRanking(
 
 	case "sticker":
 
-		reply.WriteString("🎨 今日貼圖排行\n\n")
+		reply.WriteString("🎨 今日貼圖排行\n")
+		reply.WriteString(timeRange)
 
 		reply.WriteString(formatRanking(
 			stickerCounts,
